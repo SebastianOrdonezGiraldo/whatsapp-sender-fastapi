@@ -16,7 +16,9 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
-
+    whatsapp_access_token: str = Field(default="your-token-here")
+    whatsapp_business_account_id: str = Field(default="your-waba-id")
+    whatsapp_phone_number_id: str = Field(default="your-phone-id")
     # Application
     app_name: str = Field(default="WhatsApp Sender API", alias="APP_NAME")
     debug: bool = Field(default=False, alias="DEBUG")

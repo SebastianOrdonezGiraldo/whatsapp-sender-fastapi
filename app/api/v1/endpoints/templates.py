@@ -1,7 +1,6 @@
 """Template endpoints."""
 
-from fastapi import APIRouter, Depends, Query
-from typing import List
+from fastapi import APIRouter, Query
 
 from app.schemas.template import (
     TemplateParsed,
@@ -50,8 +49,8 @@ async def list_templates():
     description="Get specific template details by name and language",
 )
 async def get_template(
-    template_name: str,
-    language: str = Query(default="es", description="Template language code"),
+        template_name: str,
+        language: str = Query(default="es", description="Template language code"),
 ):
     """
     Get specific template by name.
