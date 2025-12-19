@@ -5,14 +5,14 @@ from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy. ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# Import your models here
+# Import your models and config
 from app.core.database import Base
-from app.models import Campaign, Message  # Import all models
 from app.core.config import get_settings
+from app.models import Campaign, Message  # Import all models
 
 # Alembic Config object
 config = context.config
@@ -56,13 +56,13 @@ def do_run_migrations(connection: Connection) -> None:
 async def run_async_migrations() -> None:
     """Run migrations in async mode."""
     connectable = async_engine_from_config(
-        config. get_section(config.config_ini_section, {}),
+        config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
-        poolclass=pool. NullPool,
+        poolclass=pool.NullPool,
     )
 
     async with connectable.connect() as connection:
-        await connection. run_sync(do_run_migrations)
+        await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
 

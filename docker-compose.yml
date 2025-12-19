@@ -9,14 +9,14 @@ services:
       POSTGRES_PASSWORD: postgres123
       POSTGRES_DB: whatsapp_sender
     ports:
-      - "5432:5432"
+      - "5432:5433"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout:  5s
-      retries:  5
+      interval:  10s
+      timeout: 5s
+      retries: 5
     networks:
       - whatsapp_network
 
@@ -34,20 +34,6 @@ services:
       retries: 5
     networks:
       - whatsapp_network
-
-  # RQ Worker (procesamiento asíncrono)
-  worker:
-    build: .
-    container_name: whatsapp_sender_worker
-    command: rq worker --with-scheduler campaigns messages
-    depends_on:
-      - redis
-      - postgres
-    env_file:
-      - .env
-    networks:
-      - whatsapp_network
-    restart: unless-stopped
 
 volumes:
   postgres_data:
