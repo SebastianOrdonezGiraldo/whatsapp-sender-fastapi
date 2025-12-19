@@ -46,7 +46,7 @@ class TemplateService:
                 response = await client.get(url, params=params, timeout=30.0)
                 response.raise_for_status()
 
-                data = response. json()
+                data = response.json()
                 templates_data = data.get("data", [])
 
                 templates = []
@@ -96,7 +96,7 @@ class TemplateService:
         templates_response = await self.get_templates()
 
         for template in templates_response.templates:
-            if template.name == name and template. language == language:
+            if template.name == name and template.language == language:
                 return template
 
         raise NotFoundError(
@@ -130,7 +130,7 @@ class TemplateService:
             id=template_data.get("id", ""),
             name=template_data.get("name", ""),
             status=template_data.get("status", ""),
-            language=template_data. get("language", ""),
+            language=template_data.get("language", ""),
             category=template_data.get("category", ""),
             variables=variables,
             variable_count=len(variables),

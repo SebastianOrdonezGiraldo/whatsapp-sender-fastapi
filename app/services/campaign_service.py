@@ -10,6 +10,8 @@ from app.models.campaign import Campaign
 from app.utils.enums import CampaignStatus
 from app.core.exceptions import NotFoundError, ValidationError
 from app.core.logging import get_logger
+from app.services.notification_service import get_notification_service
+from app.services.template_service import TemplateService
 
 logger = get_logger(__name__)
 
@@ -55,6 +57,34 @@ class CampaignService:
         # Validate scheduled_at if provided
         if campaign_in.scheduled_at and campaign_in.scheduled_at < datetime.utcnow():
             raise ValidationError("Scheduled time must be in the future")
+
+        # Validate template exists and is approved in Meta
+        try:
+            template_service = TemplateService()
+            template = await template_service.get_template_by_name(
+                campaign_in.template_name,
+                campaign_in.template_language or "es",
+            )
+            logger.info(
+                "Template validated",
+                template_name=template.name,
+                template_id=template.id,
+                status=template.status,
+            )
+        except NotFoundError as e:
+            raise ValidationError(
+                f"Template '{campaign_in.template_name}' with language "
+                f"'{campaign_in.template_language or 'es'}' not found or not approved in Meta. "
+                f"Please ensure the template exists and is APPROVED in your WhatsApp Business Account."
+            ) from e
+        except Exception as e:
+            logger.warning(
+                "Error validating template (continuing anyway)",
+                template_name=campaign_in.template_name,
+                error=str(e),
+            )
+            # Don't fail campaign creation if template validation fails
+            # The error will be caught when trying to send messages
 
         # Prepare campaign data
         campaign_data = campaign_in.model_dump()
@@ -176,6 +206,36 @@ class CampaignService:
             if update_data["scheduled_at"] < datetime.utcnow():
                 raise ValidationError("Scheduled time must be in the future")
 
+        # Validate template if being updated
+        if "template_name" in update_data:
+            template_name = update_data.get("template_name")
+            template_language = update_data.get("template_language", campaign.template_language or "es")
+            
+            try:
+                template_service = TemplateService()
+                template = await template_service.get_template_by_name(
+                    template_name,
+                    template_language,
+                )
+                logger.info(
+                    "Template validated on update",
+                    template_name=template.name,
+                    template_id=template.id,
+                    status=template.status,
+                )
+            except NotFoundError as e:
+                raise ValidationError(
+                    f"Template '{template_name}' with language '{template_language}' "
+                    f"not found or not approved in Meta. Please ensure the template exists "
+                    f"and is APPROVED in your WhatsApp Business Account."
+                ) from e
+            except Exception as e:
+                logger.warning(
+                    "Error validating template on update (continuing anyway)",
+                    template_name=template_name,
+                    error=str(e),
+                )
+
         updated_campaign = await self.campaign_repo.update(
             db_obj=campaign,
             obj_in=update_data,
@@ -252,8 +312,15 @@ class CampaignService:
             total_recipients=campaign.total_recipients,
         )
 
-        # TODO: Enqueue job to process messages
-        # await self.enqueue_campaign_job(campaign_id)
+        # Enqueue job to process messages
+        await self._enqueue_campaign_job(campaign_id)
+
+        # Publish notification
+        await self._publish_campaign_update(
+            campaign_id,
+            "status_changed",
+            {"status": CampaignStatus.RUNNING, "started_at": updated_campaign.started_at},
+        )
 
         return updated_campaign
 
@@ -286,6 +353,13 @@ class CampaignService:
 
         logger.info("Campaign paused", campaign_id=campaign_id)
 
+        # Publish notification
+        await self._publish_campaign_update(
+            campaign_id,
+            "status_changed",
+            {"status": CampaignStatus.PAUSED},
+        )
+
         return updated_campaign
 
     async def resume_campaign(self, campaign_id: int) -> Campaign:
@@ -317,7 +391,15 @@ class CampaignService:
 
         logger.info("Campaign resumed", campaign_id=campaign_id)
 
-        # TODO: Re-enqueue job to continue processing
+        # Re-enqueue job to continue processing
+        await self._enqueue_campaign_job(campaign_id)
+
+        # Publish notification
+        await self._publish_campaign_update(
+            campaign_id,
+            "status_changed",
+            {"status": CampaignStatus.RUNNING},
+        )
 
         return updated_campaign
 
@@ -354,6 +436,13 @@ class CampaignService:
 
         logger.info("Campaign cancelled", campaign_id=campaign_id)
 
+        # Publish notification
+        await self._publish_campaign_update(
+            campaign_id,
+            "status_changed",
+            {"status": CampaignStatus.CANCELLED},
+        )
+
         return updated_campaign
 
     async def get_campaign_stats(self, campaign_id: int) -> dict:
@@ -384,3 +473,70 @@ class CampaignService:
             Total number of campaigns
         """
         return await self.campaign_repo.count()
+
+    async def _enqueue_campaign_job(self, campaign_id: int) -> None:
+        """
+        Enqueue a background job to process campaign messages.
+
+        Args:
+            campaign_id: Campaign ID
+        """
+        try:
+            from app.core.redis import get_campaign_queue
+            from app.workers.tasks.campaign_tasks import process_campaign_task
+            from app.workers.handlers.campaign_handler import (
+                handle_campaign_job_success,
+                handle_campaign_job_failure,
+            )
+
+            campaign_queue = get_campaign_queue()
+            job = campaign_queue.enqueue(
+                process_campaign_task,
+                campaign_id,
+                job_timeout=3600,  # 1 hour timeout
+                on_success=handle_campaign_job_success,
+                on_failure=handle_campaign_job_failure,
+            )
+
+            logger.info(
+                "Campaign processing job enqueued",
+                campaign_id=campaign_id,
+                job_id=job.id,
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to enqueue campaign job",
+                campaign_id=campaign_id,
+                error=str(e),
+                exc_info=True,
+            )
+            # Don't raise - campaign is already started, job can be retried manually
+
+    async def _publish_campaign_update(
+        self,
+        campaign_id: int,
+        event_type: str,
+        data: dict,
+    ) -> None:
+        """
+        Publish campaign update notification.
+
+        Args:
+            campaign_id: Campaign ID
+            event_type: Event type
+            data: Event data
+        """
+        try:
+            notification_service = get_notification_service()
+            await notification_service.publish_campaign_update(
+                campaign_id,
+                event_type,
+                data,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to publish campaign update",
+                campaign_id=campaign_id,
+                error=str(e),
+            )
+            # Don't raise - notification failure shouldn't break the operation

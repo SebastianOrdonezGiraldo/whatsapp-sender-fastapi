@@ -1,6 +1,6 @@
 """Redis configuration and connection management."""
 
-import redis. asyncio as aioredis
+import redis.asyncio as aioredis
 from redis.asyncio import Redis
 from rq import Queue
 from redis import Redis as SyncRedis
@@ -23,7 +23,7 @@ async def get_redis() -> Redis:
 # Sync Redis for RQ (RQ doesn't support async yet)
 def get_sync_redis() -> SyncRedis:
     """Get sync Redis client for RQ."""
-    return SyncRedis. from_url(settings.redis_url)
+    return SyncRedis.from_url(settings.redis_url)
 
 
 # RQ Queues

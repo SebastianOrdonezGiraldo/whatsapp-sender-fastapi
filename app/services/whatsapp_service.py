@@ -4,7 +4,7 @@ import httpx
 from typing import Optional, Dict, Any, List
 
 from app.core.config import get_settings
-from app. core.exceptions import ExternalServiceError
+from app.core.exceptions import ExternalServiceError
 from app.core.logging import get_logger
 from app.services.template_service import TemplateService
 

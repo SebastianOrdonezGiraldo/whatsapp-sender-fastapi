@@ -1,4 +1,4 @@
-"""Handlers for campaign-related background tasks."""
+"""Handlers for message-related background tasks."""
 
 from typing import Dict, Any
 from rq.job import Job
@@ -8,9 +8,9 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 
-def handle_campaign_job_success(job: Job, connection, result: Dict[str, Any], *args, **kwargs) -> None:
+def handle_message_job_success(job: Job, connection, result: Dict[str, Any], *args, **kwargs) -> None:
     """
-    Handle successful campaign job completion.
+    Handle successful message job completion.
     
     Args:
         job: RQ Job instance
@@ -19,17 +19,17 @@ def handle_campaign_job_success(job: Job, connection, result: Dict[str, Any], *a
         *args: Additional arguments
         **kwargs: Additional keyword arguments
     """
-    logger.info(
-        "Campaign job completed successfully",
+    logger.debug(
+        "Message job completed successfully",
         job_id=job.id,
-        campaign_id=result.get("campaign_id"),
-        result=result,
+        message_id=result.get("message_id"),
+        success=result.get("success"),
     )
 
 
-def handle_campaign_job_failure(job: Job, connection, type, value, traceback, *args, **kwargs) -> None:
+def handle_message_job_failure(job: Job, connection, type, value, traceback, *args, **kwargs) -> None:
     """
-    Handle campaign job failure.
+    Handle message job failure.
     
     Args:
         job: RQ Job instance
@@ -41,26 +41,27 @@ def handle_campaign_job_failure(job: Job, connection, type, value, traceback, *a
         **kwargs: Additional keyword arguments
     """
     logger.error(
-        "Campaign job failed",
+        "Message job failed",
         job_id=job.id,
+        message_id=job.args[0] if job.args else None,
         error_type=str(type),
         error_value=str(value),
         exc_info=(type, value, traceback),
     )
 
 
-def handle_campaign_job_started(job: Job, *args, **kwargs) -> None:
+def handle_message_job_started(job: Job, *args, **kwargs) -> None:
     """
-    Handle campaign job start.
+    Handle message job start.
     
     Args:
         job: RQ Job instance
         *args: Additional arguments
         **kwargs: Additional keyword arguments
     """
-    logger.info(
-        "Campaign job started",
+    logger.debug(
+        "Message job started",
         job_id=job.id,
-        campaign_id=job.args[0] if job.args else None,
+        message_id=job.args[0] if job.args else None,
     )
 

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.core.config import Settings, get_settings
 from app.repositories.campaign_repository import CampaignRepository
-from app.repositories. message_repository import MessageRepository
+from app.repositories.message_repository import MessageRepository
 from app.services.campaign_service import CampaignService
 
 
@@ -23,7 +23,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             yield session
             await session.commit()
         except Exception:
-            await session. rollback()
+            await session.rollback()
             raise
         finally:
             await session.close()

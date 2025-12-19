@@ -10,8 +10,8 @@ from fastapi. exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import get_settings
-from app.core. logging import configure_logging, get_logger
-from app.core. database import close_db
+from app.core.logging import configure_logging, get_logger
+from app.core.database import close_db
 from app.core.exceptions import AppException
 from app.core.exception_handlers import (
     app_exception_handler,
@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Application lifespan events."""
     # Startup
     logger.info("Starting WhatsApp Sender API", version="0.1.0")
-    configure_logging(debug=settings. debug)
+    configure_logging(debug=settings.debug)
 
     logger.info("Application started successfully")
 
@@ -55,7 +55,7 @@ app = FastAPI(
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=settings. cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,7 +69,7 @@ app.add_exception_handler(Exception, generic_exception_handler)
 
 
 # Root endpoint
-@app.get("/")
+@app.get("/", tags=["default"])
 async def root():
     """Root endpoint."""
     return {
@@ -80,7 +80,7 @@ async def root():
 
 
 # Health check endpoint
-@app.get("/health")
+@app.get("/health", tags=["default"])
 async def health_check():
     """Health check endpoint."""
     return JSONResponse(
@@ -88,17 +88,18 @@ async def health_check():
         content={
             "status": "healthy",
             "service": "whatsapp-sender-api",
-            "version":  "0.1.0",
+            "version": "0.1.0",
         }
     )
 
 
-# Include API routers
-# IMPORTANTE: Esto debe estar al final pero en el mismo archivo
-try:
-    from app.api. v1.router import api_router
-    app.include_router(api_router, prefix="/api/v1")
-    logger.info("API v1 router included successfully")
-except Exception as e:
-    logger.error("Failed to include API v1 router", error=str(e))
-    raise
+# Include API v1 router - DEBE ESTAR AL FINAL
+from app.api.v1.router import api_router
+
+app.include_router(api_router, prefix="/api/v1")
+
+logger.info(
+    "API routes registered",
+    total_routes=len(app.routes),
+    api_routes=len([r for r in app.routes if hasattr(r, 'path') and r.path.startswith('/api/v1')])
+)
