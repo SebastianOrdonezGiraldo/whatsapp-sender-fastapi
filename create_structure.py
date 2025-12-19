@@ -66,7 +66,7 @@ def create_structure():
                 "campaign.py": "",
                 "message.py": "",
                 "template.py": "",
-                "csv. py": "",
+                "csv_schema.py": "",
                 "statistics. py": "",
                 "responses. py": "",
             },
