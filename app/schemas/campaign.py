@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import Field, field_validator
-
+from pydantic import BaseModel  # ✅ CORRECTO
 from app.schemas.base import BaseSchema, TimestampSchema
 from app.utils.enums import CampaignStatus
 
@@ -103,3 +103,16 @@ class CampaignStatsResponse(BaseSchema):
     total_messages_failed: int
     overall_success_rate: float
     total_cost: float
+
+    class CampaignCreate(BaseModel):
+        """Schema for creating a campaign."""
+
+        name: str = Field(..., min_length=1, max_length=255, description="Campaign name")
+        description: Optional[str] = Field(None, max_length=1000, description="Campaign description")
+        message_template: str = Field(..., min_length=1, description="Message template text")
+
+        # NUEVO: Template de WhatsApp
+        template_name: Optional[str] = Field(None, description="WhatsApp template name from Meta")
+        template_language: str = Field(default="es", description="Template language code")
+
+        scheduled_at: Optional[datetime] = Field(None, description="Scheduled start time")

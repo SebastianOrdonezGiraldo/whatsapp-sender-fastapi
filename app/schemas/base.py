@@ -72,4 +72,20 @@ class ErrorResponseSchema(BaseSchema):
     """Error response schema."""
 
     success: bool = False
-    error: ErrorDetailSchema
+    error:
+
+    class ResponseSchema(BaseModel, Generic[DataT]):
+        """Generic response schema for API endpoints."""
+
+        success: bool = Field(..., description="Whether the request was successful")
+        message: str = Field(..., description="Human-readable message")
+        data: Optional[DataT] = Field(None, description="Response data")
+
+        class Config:
+            json_schema_extra = {
+                "example": {
+                    "success": True,
+                    "message": "Operation completed successfully",
+                    "data": {}
+                }
+            }
