@@ -12,27 +12,28 @@ class TemplateParameter(BaseModel):
     currency: Optional[Dict[str, Any]] = Field(None, description="Currency data")
     date_time: Optional[Dict[str, Any]] = Field(None, description="Date/time data")
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "type": "text",
                 "text": "Juan"
             }
         }
+    }
 
 
 class TemplateComponent(BaseModel):
     """Template component (header, body, footer, buttons)."""
 
-    type: str = Field(..., description="Component type:  HEADER, BODY, FOOTER, BUTTONS")
-    format: Optional[str] = Field(None, description="Format for HEADER:  TEXT, IMAGE, VIDEO, DOCUMENT")
+    type: str = Field(... , description="Component type:  HEADER, BODY, FOOTER, BUTTONS")
+    format: Optional[str] = Field(None, description="Format for HEADER: TEXT, IMAGE, VIDEO, DOCUMENT")
     text: Optional[str] = Field(None, description="Template text with placeholders")
     example: Optional[Dict[str, List[str]]] = Field(None, description="Example values for variables")
     parameters: Optional[List[TemplateParameter]] = Field(None, description="Parameters for sending")
     buttons: Optional[List[Dict[str, Any]]] = Field(None, description="Button definitions")
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "type": "BODY",
                 "text": "Hola {{1}}, tu producto {{2}} está listo!",
@@ -41,6 +42,7 @@ class TemplateComponent(BaseModel):
                 }
             }
         }
+    }
 
 
 class TemplateLanguage(BaseModel):
@@ -49,26 +51,27 @@ class TemplateLanguage(BaseModel):
     code: str = Field(default="es", description="Language code (es, en, pt, etc.)")
     policy: Optional[str] = Field(None, description="Language policy")
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "code": "es"
             }
         }
+    }
 
 
 class TemplateResponse(BaseModel):
     """WhatsApp template from Meta API."""
 
     id: str = Field(..., description="Template ID")
-    name: str = Field(..., description="Template name")
+    name: str = Field(... , description="Template name")
     status: str = Field(..., description="Template status:  APPROVED, PENDING, REJECTED, DISABLED")
     language: str = Field(..., description="Template language code")
     category: str = Field(..., description="Template category:  MARKETING, UTILITY, AUTHENTICATION")
-    components: List[Dict[str, Any]] = Field(..., description="Template components")
+    components: List[Dict[str, Any]] = Field(... , description="Template components")
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "id": "123456789",
                 "name": "bienvenida",
@@ -83,6 +86,7 @@ class TemplateResponse(BaseModel):
                 ]
             }
         }
+    }
 
 
 class TemplateParsed(BaseModel):
@@ -99,21 +103,22 @@ class TemplateParsed(BaseModel):
     header_format: Optional[str] = Field(None, description="Header format if exists")
     has_buttons: bool = Field(default=False, description="Whether template has buttons")
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "id": "123456789",
                 "name": "bienvenida",
-                "status": "APPROVED",
+                "status":  "APPROVED",
                 "language": "es",
                 "category": "MARKETING",
                 "variables": ["nombre", "empresa"],
                 "variable_count": 2,
                 "body_text": "Hola {{1}}, bienvenido a {{2}}!",
                 "header_format": None,
-                "has_buttons": False
+                "has_buttons":  False
             }
         }
+    }
 
 
 class TemplateListResponse(BaseModel):
@@ -125,8 +130,8 @@ class TemplateListResponse(BaseModel):
     pending: int
     rejected: int
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "templates": [],
                 "total": 10,
@@ -135,6 +140,7 @@ class TemplateListResponse(BaseModel):
                 "rejected": 1
             }
         }
+    }
 
 
 class SendTemplateRequest(BaseModel):
@@ -143,14 +149,15 @@ class SendTemplateRequest(BaseModel):
     template_name: str = Field(..., description="Template name")
     template_language: str = Field(default="es", description="Template language code")
     to: str = Field(..., description="Recipient phone number with country code")
-    parameters: List[str] = Field(..., description="Values for template variables in order")
+    parameters: List[str] = Field(... , description="Values for template variables in order")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "template_name": "bienvenida",
+    model_config = {
+        "json_schema_extra": {
+            "example":  {
+                "template_name":  "bienvenida",
                 "template_language": "es",
                 "to": "+573001234567",
-                "parameters": ["Juan", "Mi Empresa"]
+                "parameters":  ["Juan", "Mi Empresa"]
             }
         }
+    }

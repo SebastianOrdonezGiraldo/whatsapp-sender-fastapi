@@ -3,7 +3,7 @@
 from typing import Any, Generic, Optional, TypeVar
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BaseSchema(BaseModel):
@@ -29,9 +29,18 @@ DataT = TypeVar("DataT")
 class ResponseSchema(BaseSchema, Generic[DataT]):
     """Generic response wrapper."""
 
-    success: bool = True
-    message: str = "Success"
-    data: Optional[DataT] = None
+    success: bool = Field(default=True, description="Whether the request was successful")
+    message: str = Field(default="Success", description="Human-readable message")
+    data: Optional[DataT] = Field(None, description="Response data")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Operation completed successfully",
+                "data": {}
+            }
+        }
 
 
 class PaginationSchema(BaseSchema):
@@ -65,27 +74,11 @@ class ErrorDetailSchema(BaseSchema):
 
     code: str
     message: str
-    details: Optional[dict[str, Any]] = None
+    details:  Optional[dict[str, Any]] = None
 
 
 class ErrorResponseSchema(BaseSchema):
     """Error response schema."""
 
     success: bool = False
-    error:
-
-    class ResponseSchema(BaseModel, Generic[DataT]):
-        """Generic response schema for API endpoints."""
-
-        success: bool = Field(..., description="Whether the request was successful")
-        message: str = Field(..., description="Human-readable message")
-        data: Optional[DataT] = Field(None, description="Response data")
-
-        class Config:
-            json_schema_extra = {
-                "example": {
-                    "success": True,
-                    "message": "Operation completed successfully",
-                    "data": {}
-                }
-            }
+    error:  ErrorDetailSchema

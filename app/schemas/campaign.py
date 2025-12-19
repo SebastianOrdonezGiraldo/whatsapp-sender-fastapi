@@ -1,10 +1,10 @@
 """Campaign schemas for API requests and responses."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import Field, field_validator
-from pydantic import BaseModel  # ✅ CORRECTO
+
 from app.schemas.base import BaseSchema, TimestampSchema
 from app.utils.enums import CampaignStatus
 
@@ -12,24 +12,24 @@ from app.utils.enums import CampaignStatus
 class CampaignBase(BaseSchema):
     """Base campaign schema."""
 
-    name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
-    template_name: str = Field(..., min_length=1, max_length=255)
-    template_language: str = Field(default="es", pattern="^[a-z]{2}$")
-    batch_size: int = Field(default=50, ge=1, le=100)
-    delay_between_messages: float = Field(default=0.3, ge=0.1, le=5.0)
-    is_test: bool = Field(default=False)
+    name: str = Field(..., min_length=1, max_length=255, description="Campaign name")
+    description: Optional[str] = Field(None, max_length=1000, description="Campaign description")
+    template_name: str = Field(..., min_length=1, max_length=255, description="WhatsApp template name")
+    template_language: str = Field(default="es", pattern="^[a-z]{2}$", description="Template language code")
+    batch_size: int = Field(default=50, ge=1, le=100, description="Batch size for sending")
+    delay_between_messages: float = Field(default=0.3, ge=0.1, le=5.0, description="Delay between messages in seconds")
+    is_test: bool = Field(default=False, description="Test mode flag")
 
 
 class CampaignCreate(CampaignBase):
     """Schema for creating a campaign."""
 
-    scheduled_at: Optional[datetime] = None
+    scheduled_at: Optional[datetime] = Field(None, description="Scheduled start time")
 
     @field_validator("scheduled_at")
     @classmethod
     def validate_scheduled_at(cls, v: Optional[datetime]) -> Optional[datetime]:
-        if v and v < datetime.now():
+        if v and v < datetime.utcnow():
             raise ValueError("scheduled_at must be in the future")
         return v
 
@@ -39,10 +39,16 @@ class CampaignUpdate(BaseSchema):
 
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=1000)
-    status: Optional[CampaignStatus] = None
     scheduled_at: Optional[datetime] = None
     batch_size: Optional[int] = Field(None, ge=1, le=100)
     delay_between_messages: Optional[float] = Field(None, ge=0.1, le=5.0)
+
+    @field_validator("scheduled_at")
+    @classmethod
+    def validate_scheduled_at(cls, v: Optional[datetime]) -> Optional[datetime]:
+        if v and v < datetime.utcnow():
+            raise ValueError("scheduled_at must be in the future")
+        return v
 
 
 class CampaignResponse(CampaignBase, TimestampSchema):
@@ -57,7 +63,7 @@ class CampaignResponse(CampaignBase, TimestampSchema):
     messages_read: int
     estimated_cost: float
     actual_cost: float
-    scheduled_at: Optional[datetime] = None
+    scheduled_at:  Optional[datetime] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
@@ -78,41 +84,27 @@ class CampaignResponse(CampaignBase, TimestampSchema):
 
 
 class CampaignListResponse(BaseSchema):
-    """Schema for campaign list item."""
+    """Schema for campaign list response."""
 
-    id: int
-    name: str
-    status: CampaignStatus
-    total_recipients: int
-    messages_sent: int
-    messages_delivered: int
-    messages_failed: int
-    progress_percentage: float
-    created_at: datetime
-    scheduled_at: Optional[datetime] = None
+    campaigns: List[CampaignResponse]
+    total: int
+    skip: int
+    limit: int
 
 
 class CampaignStatsResponse(BaseSchema):
     """Schema for campaign statistics."""
 
-    total_campaigns: int
-    active_campaigns: int
-    completed_campaigns: int
-    total_messages_sent: int
-    total_messages_delivered: int
-    total_messages_failed: int
-    overall_success_rate: float
-    total_cost: float
-
-    class CampaignCreate(BaseModel):
-        """Schema for creating a campaign."""
-
-        name: str = Field(..., min_length=1, max_length=255, description="Campaign name")
-        description: Optional[str] = Field(None, max_length=1000, description="Campaign description")
-        message_template: str = Field(..., min_length=1, description="Message template text")
-
-        # NUEVO: Template de WhatsApp
-        template_name: Optional[str] = Field(None, description="WhatsApp template name from Meta")
-        template_language: str = Field(default="es", description="Template language code")
-
-        scheduled_at: Optional[datetime] = Field(None, description="Scheduled start time")
+    campaign_id: int
+    status: CampaignStatus
+    total_recipients: int
+    messages_sent: int
+    messages_delivered: int
+    messages_failed: int
+    messages_read:  int
+    progress_percentage: float
+    success_rate: float
+    estimated_cost: float
+    actual_cost: float
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
